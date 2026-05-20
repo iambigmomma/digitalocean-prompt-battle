@@ -64,10 +64,31 @@
     flex-shrink: 0;
   }
 
-  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-left { display: flex; align-items: center; gap: 16px; }
 
-  .header-left h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .do-logo { height: 28px; width: auto; }
+
+  .divider { width: 1px; height: 28px; background: rgba(255,255,255,0.15); }
+
+  .header-left h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
   .header-left h1 span { color: var(--do-accent); }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    color: var(--do-gray);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .back-btn:hover { border-color: rgba(255,255,255,0.3); color: var(--do-white); }
 
   .live-badge {
     display: flex; align-items: center; gap: 6px;
@@ -270,10 +291,12 @@
   <div class="layout">
     <div class="header">
       <div class="header-left">
+        <img src="/do-logo.png" alt="DigitalOcean" class="do-logo">
+        <div class="divider"></div>
         <h1>🍽️ Recipe <span>Battle</span></h1>
         <div class="live-badge"><div class="live-dot"></div> Live</div>
       </div>
-      <div style="display:flex;align-items:center;gap:16px">
+      <div style="display:flex;align-items:center;gap:12px">
         <div class="chef-badge">
           <img src="/gordon.jpg" alt="Gordon Ramsay" onerror="this.style.display='none';this.nextSibling.style.display='block'">
           <span style="display:none;font-size:28px">👨‍🍳</span>
@@ -285,6 +308,7 @@
         <div class="counter">
           <strong id="entryCount">0</strong> dishes
         </div>
+        <a href="/" class="back-btn">✏️ Submit</a>
       </div>
     </div>
 
