@@ -158,7 +158,8 @@
   .carousel-dot.active { background: var(--do-accent); transform: scale(1.3); }
   .carousel-label {
     text-align: center; margin-top: 8px;
-    font-size: 12px; color: var(--do-gray);
+    font-size: 11px; color: var(--do-gray);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
   .guide-steps {
@@ -342,7 +343,7 @@
             </div>
             <button class="carousel-btn" id="cNext" onclick="carouselMove(1)">›</button>
           </div>
-          <div class="carousel-label" id="carouselLabel">Step 1 of 3 — Log in to DO console</div>
+          <div class="carousel-label" id="carouselLabel">Step 1 — Inference → Manage</div>
           <div class="guide-steps" style="margin-top:10px">
             <div class="guide-step"><b>①</b> Inference → Manage → <strong style="color:#fff">Create model access key</strong></div>
             <div class="guide-step"><b>②</b> Name it · <strong style="color:#fff">All models</strong> · <strong style="color:#fff">Continue</strong></div>
@@ -533,9 +534,9 @@
 
   // Carousel
   const carouselLabels = [
-    'Step 1 — Sidebar → Inference → Manage → click "Create model access key"',
-    'Step 2 — Enter a key name, select "All models", click Continue',
-    'Step 3 — Select "No VPC network", click "Add model access key" & copy it',
+    'Step 1 — Inference → Manage',
+    'Step 2 — Name key · All models · Continue',
+    'Step 3 — No VPC → Add model access key',
   ];
   let cIdx = 0;
   function carouselGo(n) {
