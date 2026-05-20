@@ -319,7 +319,7 @@
           <div class="step-num">2</div>
           <div class="step-label">
             <strong>Generate a Model Access Key</strong>
-            <span>Inference → Manage → Create Model Access Key</span>
+            <span>Name it, select All models, No VPC → done</span>
           </div>
           <div class="step-chevron">▼</div>
         </div>
@@ -342,9 +342,9 @@
           </div>
           <div class="carousel-label" id="carouselLabel">Step 1 of 3 — Log in to DO console</div>
           <div class="guide-steps" style="margin-top:10px">
-            <div class="guide-step"><b>①</b> Left sidebar → <strong style="color:#fff">Inference</strong> → click <strong style="color:#fff">Manage</strong></div>
-            <div class="guide-step"><b>②</b> Click <strong style="color:#fff">Create Model Access Key</strong> → enter a name, select models (select all), choose <strong style="color:#fff">No VPC</strong></div>
-            <div class="guide-step"><b>③</b> Click <strong style="color:#fff">Create</strong> — copy the key and paste it in Step 3 below</div>
+            <div class="guide-step"><b>①</b> Left sidebar → <strong style="color:#fff">Inference</strong> → <strong style="color:#fff">Manage</strong> → click <strong style="color:#fff">Create model access key</strong></div>
+            <div class="guide-step"><b>②</b> Enter a key name, choose <strong style="color:#fff">All models</strong> (Wildcard), click <strong style="color:#fff">Continue</strong></div>
+            <div class="guide-step"><b>③</b> Select <strong style="color:#fff">No VPC network</strong> → click <strong style="color:#fff">Add model access key</strong> → copy the key</div>
           </div>
           <button onclick="openStep(3)" style="margin-top:16px;background:none;border:1.5px solid rgba(0,97,255,0.4);color:var(--do-blue);border-radius:10px;padding:10px 16px;width:100%;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">
             I have my key → Go to Step 3
@@ -531,9 +531,9 @@
 
   // Carousel
   const carouselLabels = [
-    'Step 1 of 3 — Sidebar → Inference → Manage',
-    'Step 2 of 3 — Create Model Access Key, name it & select all models',
-    'Step 3 of 3 — Choose No VPC → Create → copy your key',
+    'Step 1 — Sidebar → Inference → Manage → click "Create model access key"',
+    'Step 2 — Enter a key name, select "All models", click Continue',
+    'Step 3 — Select "No VPC network", click "Add model access key" & copy it',
   ];
   let cIdx = 0;
   function carouselGo(n) {
