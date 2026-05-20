@@ -182,6 +182,10 @@ app.get("/display", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "display.html"));
 });
 
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
 app.listen(PORT, () => {
   console.log(`Recipe Battle running on http://localhost:${PORT}`);
   console.log(`Phone UI:    http://localhost:${PORT}`);

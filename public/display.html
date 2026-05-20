@@ -227,28 +227,28 @@
   .empty p { font-size: 18px; }
 
   /* Admin bar */
-  .admin-bar {
-    position: fixed;
-    bottom: 16px; right: 24px;
-    display: flex; gap: 8px;
-    z-index: 10;
+  .chef-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 40px;
+    padding: 6px 14px 6px 6px;
   }
 
-  .admin-btn {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: var(--do-gray);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
+  .chef-badge img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    border: 2px solid var(--do-accent);
   }
 
-  .admin-btn:hover { background: rgba(255,255,255,0.1); color: var(--do-white); }
-  .admin-btn.active { background: rgba(0,209,202,0.15); border-color: var(--do-accent); color: var(--do-accent); }
-  .admin-btn.danger:hover { background: rgba(255,79,79,0.15); color: #FF4F4F; }
+  .chef-badge-text { font-size: 12px; line-height: 1.3; }
+  .chef-badge-text strong { display: block; font-size: 13px; color: var(--do-white); }
+  .chef-badge-text span { color: var(--do-gray); font-size: 11px; }
 
   @keyframes cardIn {
     from { opacity: 0; transform: translateY(20px) scale(0.97); }
@@ -273,27 +273,30 @@
         <h1>🍽️ Recipe <span>Battle</span></h1>
         <div class="live-badge"><div class="live-dot"></div> Live</div>
       </div>
-      <div class="counter">
-        <strong id="entryCount">0</strong> dishes submitted
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="chef-badge">
+          <img src="/gordon.jpg" alt="Gordon Ramsay" onerror="this.style.display='none';this.nextSibling.style.display='block'">
+          <span style="display:none;font-size:28px">👨‍🍳</span>
+          <div class="chef-badge-text">
+            <strong>Gordon Ramsay</strong>
+            <span>Head Chef &amp; Judge</span>
+          </div>
+        </div>
+        <div class="counter">
+          <strong id="entryCount">0</strong> dishes
+        </div>
       </div>
     </div>
 
     <div class="feed-scroll" id="feed"></div>
   </div>
 
-  <div class="admin-bar">
-    <button class="admin-btn" id="toggleBtn" onclick="toggleAdmin()">🔑 Admin</button>
-    <button class="admin-btn active" id="revealBtn" style="display:none" onclick="toggleReveal()">👁 Reveal Names</button>
-    <button class="admin-btn danger" id="resetBtn" style="display:none" onclick="resetAll()">🗑 Reset All</button>
-  </div>
 
 <script>
   const feed = document.getElementById('feed');
   const entryCount = document.getElementById('entryCount');
   let entries = [];
   let namesRevealed = false;
-  let adminMode = false;
-  const ADMIN_PIN = prompt("Enter admin PIN (or cancel for view-only):") || "";
 
   // Track voted entries per session
   const voted = new Set(JSON.parse(localStorage.getItem('rb_voted') || '[]'));
@@ -418,7 +421,6 @@
 
   evtSource.addEventListener('reveal_toggle', (e) => {
     namesRevealed = JSON.parse(e.data).namesRevealed;
-    updateRevealBtn();
     render();
   });
 
@@ -439,7 +441,6 @@
     .then(data => {
       entries = data.entries || [];
       namesRevealed = data.namesRevealed || false;
-      updateRevealBtn();
       render();
     });
 
@@ -456,37 +457,6 @@
     if (entry) { entry.votes += 1; render(); }
   }
 
-  // -------------------------------------------------------
-  // Admin actions
-  // -------------------------------------------------------
-  function toggleAdmin() {
-    adminMode = !adminMode;
-    document.getElementById('revealBtn').style.display = adminMode ? 'inline-block' : 'none';
-    document.getElementById('resetBtn').style.display = adminMode ? 'inline-block' : 'none';
-  }
-
-  function updateRevealBtn() {
-    const btn = document.getElementById('revealBtn');
-    btn.textContent = namesRevealed ? '🙈 Hide Names' : '👁 Reveal Names';
-  }
-
-  function toggleReveal() {
-    if (!ADMIN_PIN) return;
-    fetch('/api/reveal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: ADMIN_PIN }),
-    });
-  }
-
-  function resetAll() {
-    if (!confirm('Reset all dishes? This cannot be undone.')) return;
-    fetch('/api/reset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: ADMIN_PIN }),
-    });
-  }
 
   function escapeHtml(text) {
     const div = document.createElement('div');

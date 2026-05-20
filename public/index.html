@@ -242,6 +242,27 @@
     color: var(--do-red);
   }
 
+  .view-dishes {
+    text-align: center;
+    padding: 20px 20px 4px;
+  }
+
+  .view-btn {
+    display: inline-block;
+    padding: 12px 28px;
+    border: 1.5px solid rgba(0,209,202,0.4);
+    border-radius: 12px;
+    color: var(--do-accent);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .view-btn:active {
+    background: rgba(0,209,202,0.1);
+  }
+
   .footer {
     text-align: center;
     padding: 16px 20px;
@@ -295,6 +316,10 @@
     </div>
 
     <div id="resultState" style="display:none;"></div>
+  </div>
+
+  <div class="view-dishes">
+    <a href="/display" class="view-btn">🍽️ View All Dishes &amp; Vote</a>
   </div>
 
   <div class="footer">Powered by DigitalOcean AI Inference</div>

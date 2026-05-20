@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recipe Battle — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --do-blue: #0061FF;
+    --do-dark: #0B1929;
+    --do-accent: #00D1CA;
+    --do-white: #FFFFFF;
+    --do-gray: #8899A8;
+    --do-red: #FF4F4F;
+    --do-heart: #FF4F7B;
+    --do-star: #FFD233;
+    --do-card: rgba(255,255,255,0.04);
+    --do-border: rgba(255,255,255,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--do-dark);
+    color: var(--do-white);
+    min-height: 100vh;
+  }
+
+  /* Lock screen */
+  .lock-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lock-card {
+    background: var(--do-card);
+    border: 1px solid var(--do-border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+  }
+
+  .lock-icon { font-size: 48px; margin-bottom: 16px; }
+
+  .lock-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .lock-card p { font-size: 13px; color: var(--do-gray); margin-bottom: 24px; }
+
+  .pin-input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: var(--do-white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px;
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 14px;
+  }
+
+  .pin-input:focus { outline: none; border-color: var(--do-blue); }
+
+  .lock-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--do-blue);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .lock-error {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--do-red);
+  }
+
+  /* Admin panel */
+  .panel { display: none; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--do-border);
+    position: sticky;
+    top: 0;
+    background: var(--do-dark);
+    z-index: 10;
+  }
+
+  .topbar h1 { font-size: 20px; font-weight: 700; }
+  .topbar h1 span { color: var(--do-accent); }
+
+  .top-actions { display: flex; gap: 10px; }
+
+  .action-btn {
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: var(--do-white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .action-btn:hover { background: rgba(255,255,255,0.12); }
+
+  .action-btn.reveal {
+    border-color: rgba(0,209,202,0.4);
+    color: var(--do-accent);
+    background: rgba(0,209,202,0.08);
+  }
+
+  .action-btn.reveal:hover { background: rgba(0,209,202,0.16); }
+
+  .action-btn.danger {
+    border-color: rgba(255,79,79,0.3);
+    color: var(--do-red);
+    background: rgba(255,79,79,0.06);
+  }
+
+  .action-btn.danger:hover { background: rgba(255,79,79,0.14); }
+
+  .content { padding: 24px 32px; }
+
+  .stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--do-card);
+    border: 1px solid var(--do-border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    flex: 1;
+    text-align: center;
+  }
+
+  .stat-card .num { font-size: 28px; font-weight: 800; color: var(--do-accent); }
+  .stat-card .label { font-size: 12px; color: var(--do-gray); margin-top: 2px; }
+
+  .entries-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  .entry-card {
+    background: var(--do-card);
+    border: 1px solid var(--do-border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .entry-card.starred { border-color: var(--do-star); }
+
+  .entry-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+  }
+
+  .entry-card .no-img {
+    width: 100%;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--do-gray);
+    background: rgba(255,255,255,0.02);
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .entry-card .no-img .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-top-color: var(--do-blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .entry-body { padding: 14px 16px; }
+
+  .entry-dish {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+
+  .entry-meta {
+    font-size: 12px;
+    color: var(--do-gray);
+    margin-bottom: 12px;
+  }
+
+  .entry-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .vote-count {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--do-heart);
+  }
+
+  .star-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .star-btn:hover { border-color: var(--do-star); }
+
+  .status-bar {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,209,202,0.15);
+    border: 1px solid rgba(0,209,202,0.3);
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-size: 13px;
+    color: var(--do-accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  .status-bar.show { opacity: 1; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Lock screen -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-icon">🔑</div>
+    <h2>Admin Access</h2>
+    <p>Recipe Battle — Host Controls</p>
+    <input class="pin-input" type="password" id="pinInput" placeholder="PIN" autocomplete="off">
+    <button class="lock-btn" onclick="unlock()">Enter</button>
+    <div class="lock-error" id="lockError"></div>
+  </div>
+</div>
+
+<!-- Admin panel -->
+<div class="panel" id="panel">
+  <div class="topbar">
+    <h1>🍽️ Recipe <span>Battle</span> — Admin</h1>
+    <div class="top-actions">
+      <button class="action-btn reveal" id="revealBtn" onclick="toggleReveal()">👁 Reveal Names</button>
+      <button class="action-btn danger" onclick="resetAll()">🗑 Reset All</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="stats">
+      <div class="stat-card">
+        <div class="num" id="statDishes">0</div>
+        <div class="label">Dishes</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statVotes">0</div>
+        <div class="label">Total Votes</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statLeader">—</div>
+        <div class="label">Leading ❤️</div>
+      </div>
+    </div>
+
+    <div class="entries-grid" id="entriesGrid"></div>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar"></div>
+
+<script>
+  let PIN = '';
+  let entries = [];
+  let namesRevealed = false;
+
+  // -------------------------------------------------------
+  // Lock screen
+  // -------------------------------------------------------
+  document.getElementById('pinInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') unlock();
+  });
+
+  async function unlock() {
+    const pin = document.getElementById('pinInput').value.trim();
+    // Verify PIN by calling a neutral read — then try a reveal to validate
+    // We use /api/reveal as a PIN check: it toggles then we toggle back
+    // Simpler: just try /api/star on a non-existent ID — 404 vs 403
+    const res = await fetch('/api/star/0', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    });
+    if (res.status === 403) {
+      document.getElementById('lockError').textContent = 'Wrong PIN. Try again.';
+      document.getElementById('pinInput').value = '';
+      return;
+    }
+    // 404 = valid PIN, entry just doesn't exist
+    PIN = pin;
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('panel').style.display = 'block';
+    loadEntries();
+    connectSSE();
+  }
+
+  // -------------------------------------------------------
+  // Data
+  // -------------------------------------------------------
+  function loadEntries() {
+    fetch('/api/entries')
+      .then(r => r.json())
+      .then(data => {
+        entries = data.entries || [];
+        namesRevealed = data.namesRevealed || false;
+        render();
+      });
+  }
+
+  function connectSSE() {
+    const evtSource = new EventSource('/api/stream');
+    const refresh = (e) => {
+      const updated = JSON.parse(e.data);
+      if (updated.id !== undefined) {
+        const idx = entries.findIndex(x => x.id === updated.id);
+        if (idx !== -1) entries[idx] = updated; else entries.push(updated);
+      }
+      render();
+    };
+    evtSource.addEventListener('new_prompt', refresh);
+    evtSource.addEventListener('dish_ready', refresh);
+    evtSource.addEventListener('response_ready', refresh);
+    evtSource.addEventListener('vote_update', refresh);
+    evtSource.addEventListener('star_toggle', refresh);
+    evtSource.addEventListener('reveal_toggle', (e) => {
+      namesRevealed = JSON.parse(e.data).namesRevealed;
+      render();
+    });
+    evtSource.addEventListener('reset', () => {
+      entries = [];
+      namesRevealed = false;
+      render();
+    });
+  }
+
+  // -------------------------------------------------------
+  // Render
+  // -------------------------------------------------------
+  function render() {
+    const totalVotes = entries.reduce((s, e) => s + e.votes, 0);
+    const leader = entries.sort((a, b) => b.votes - a.votes)[0];
+
+    document.getElementById('statDishes').textContent = entries.length;
+    document.getElementById('statVotes').textContent = totalVotes;
+    document.getElementById('statLeader').textContent = leader?.votes > 0 ? leader.votes : '—';
+
+    document.getElementById('revealBtn').textContent = namesRevealed ? '🙈 Hide Names' : '👁 Reveal Names';
+
+    const grid = document.getElementById('entriesGrid');
+    entries.forEach(entry => {
+      const existing = grid.querySelector(`[data-id="${entry.id}"]`);
+      if (existing) {
+        existing.className = `entry-card${entry.starred ? ' starred' : ''}`;
+        existing.innerHTML = cardHTML(entry);
+      } else {
+        const div = document.createElement('div');
+        div.className = `entry-card${entry.starred ? ' starred' : ''}`;
+        div.dataset.id = entry.id;
+        div.innerHTML = cardHTML(entry);
+        grid.appendChild(div);
+      }
+    });
+  }
+
+  function cardHTML(entry) {
+    const imgArea = entry.imageUrl
+      ? `<img src="${escapeAttr(entry.imageUrl)}" alt="${escapeHtml(entry.dishName)}">`
+      : `<div class="no-img"><div class="spinner"></div><span>${entry.dishName ? escapeHtml(entry.dishName) : 'Generating…'}</span></div>`;
+
+    return `
+      ${imgArea}
+      <div class="entry-body">
+        <div class="entry-dish">${escapeHtml(entry.dishName || '…')}</div>
+        <div class="entry-meta">by ${escapeHtml(entry.name)} · "${escapeHtml(entry.preferences)}"</div>
+        <div class="entry-footer">
+          <div class="vote-count">❤️ ${entry.votes}</div>
+          <button class="star-btn" onclick="toggleStar(${entry.id})">${entry.starred ? '⭐' : '☆'}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // -------------------------------------------------------
+  // Admin actions
+  // -------------------------------------------------------
+  async function toggleReveal() {
+    await fetch('/api/reveal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN }),
+    });
+    showStatus(namesRevealed ? 'Names hidden' : 'Names revealed on display!');
+  }
+
+  async function toggleStar(id) {
+    await fetch(`/api/star/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN }),
+    });
+  }
+
+  async function resetAll() {
+    if (!confirm('Reset all dishes and votes? Cannot be undone.')) return;
+    await fetch('/api/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN }),
+    });
+    showStatus('All entries cleared.');
+  }
+
+  function showStatus(msg) {
+    const bar = document.getElementById('statusBar');
+    bar.textContent = msg;
+    bar.classList.add('show');
+    setTimeout(() => bar.classList.remove('show'), 2500);
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+  }
+
+  function escapeAttr(text) {
+    return (text || '').replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
