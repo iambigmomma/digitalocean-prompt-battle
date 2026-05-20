@@ -239,6 +239,10 @@ app.get("/race", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "race.html"));
 });
 
+app.get("/display-race", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "display-race.html"));
+});
+
 app.listen(PORT, () => {
   console.log(`Recipe Battle running on http://localhost:${PORT}`);
   console.log(`Phone UI:    http://localhost:${PORT}`);

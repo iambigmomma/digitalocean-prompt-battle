@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deploy Race — Live Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --do-blue: #0061FF;
+    --do-dark: #070F1A;
+    --do-accent: #00D1CA;
+    --do-white: #FFFFFF;
+    --do-gray: #6B7D8E;
+    --do-card: rgba(255,255,255,0.04);
+    --do-border: rgba(255,255,255,0.06);
+    --do-green: #00C087;
+    --do-gold: #FFD233;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--do-dark);
+    color: var(--do-white);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bg-grid {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,97,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,97,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  .bg-glow {
+    position: fixed; top: -200px; left: -100px;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(0,97,255,0.10) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .layout {
+    position: relative; z-index: 1;
+    flex: 1; display: flex; flex-direction: column;
+    padding: 20px 28px 12px; min-height: 0;
+  }
+
+  /* Header */
+  .header {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px; flex-shrink: 0;
+    gap: 12px;
+  }
+
+  .header-left { display: flex; align-items: center; gap: 12px; }
+
+  .header-left h1 {
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 800; letter-spacing: -0.5px;
+  }
+  .header-left h1 span { color: var(--do-accent); }
+
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,79,79,0.15);
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; color: #FF4F4F;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .live-dot {
+    width: 7px; height: 7px; background: #FF4F4F; border-radius: 50%;
+    animation: blink 1.5s ease infinite;
+  }
+
+  /* Prize slots */
+  .prize-bar {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .prize-label { font-size: 12px; color: var(--do-gray); white-space: nowrap; }
+  .prize-slots { display: flex; gap: 6px; }
+  .prize-slot {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 2px solid rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; transition: all 0.4s;
+  }
+  .prize-slot.claimed { border-color: var(--do-gold); background: rgba(255,210,51,0.12); }
+
+  /* Main two-column layout */
+  .main {
+    flex: 1; display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 20px; min-height: 0;
+  }
+
+  /* Left — leaderboard */
+  .leaderboard { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+
+  .leaderboard::-webkit-scrollbar { width: 3px; }
+  .leaderboard::-webkit-scrollbar-track { background: transparent; }
+  .leaderboard::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  .race-card {
+    background: var(--do-card);
+    border: 1px solid var(--do-border);
+    border-radius: 16px; padding: 16px 20px;
+    display: flex; align-items: flex-start; gap: 16px;
+    animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: border-color 0.3s;
+  }
+
+  .race-card.pos-1 { border-color: #FFD233; background: rgba(255,210,51,0.05); }
+  .race-card.pos-2 { border-color: #C0C0C0; background: rgba(192,192,192,0.04); }
+  .race-card.pos-3 { border-color: #CD7F32; background: rgba(205,127,50,0.04); }
+
+  .medal { font-size: 32px; flex-shrink: 0; line-height: 1; margin-top: 2px; }
+
+  .card-body { flex: 1; min-width: 0; }
+
+  .card-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .card-name { font-size: 18px; font-weight: 700; }
+  .card-time { font-size: 11px; color: var(--do-gray); }
+
+  .card-response {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--do-accent);
+    background: rgba(0,209,202,0.06);
+    border: 1px solid rgba(0,209,202,0.15);
+    border-radius: 8px; padding: 8px 12px;
+    line-height: 1.5;
+  }
+
+  .empty {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--do-gray); gap: 12px; padding: 60px 0;
+    text-align: center;
+  }
+  .empty-icon { font-size: 40px; opacity: 0.3; }
+  .empty p { font-size: 16px; }
+  .empty small { font-size: 13px; opacity: 0.7; }
+
+  /* Right panel */
+  .right-panel { display: flex; flex-direction: column; gap: 16px; }
+
+  /* QR code */
+  .qr-card {
+    background: var(--do-card);
+    border: 1px solid var(--do-border);
+    border-radius: 16px; padding: 20px;
+    text-align: center; flex-shrink: 0;
+  }
+  .qr-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 4px; color: var(--do-accent); text-transform: uppercase; letter-spacing: 1px; }
+  .qr-card p { font-size: 12px; color: var(--do-gray); margin-bottom: 14px; }
+  .qr-card img { width: 140px; height: 140px; border-radius: 10px; }
+
+  /* Code block */
+  .code-card {
+    background: #0D1F2D;
+    border: 1px solid rgba(0,97,255,0.2);
+    border-radius: 16px; overflow: hidden;
+    flex: 1;
+  }
+
+  .code-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 16px;
+    background: rgba(0,97,255,0.08);
+    border-bottom: 1px solid rgba(0,97,255,0.15);
+  }
+  .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-dot.red { background: #FF5F57; }
+  .code-dot.yellow { background: #FEBC2E; }
+  .code-dot.green { background: #28C840; }
+  .code-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--do-gray); margin-left: 4px;
+  }
+
+  .code-body {
+    padding: 18px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px; line-height: 1.8;
+    overflow-x: auto;
+  }
+
+  .code-body::-webkit-scrollbar { height: 3px; }
+  .code-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+
+  .token-kw { color: #C792EA; }
+  .token-fn { color: #82AAFF; }
+  .token-str { color: #C3E88D; }
+  .token-key { color: #89DDFF; }
+  .token-comment { color: #546E7A; font-style: italic; }
+  .token-num { color: #F78C6C; }
+  .token-var { color: var(--do-accent); }
+
+  /* Footer */
+  .footer {
+    position: relative; z-index: 1;
+    padding: 10px 24px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .footer img { height: 18px; width: auto; opacity: 0.35; }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .right-panel { flex-direction: row; flex-wrap: wrap; }
+    .qr-card { flex: 1; min-width: 200px; }
+    .code-card { flex: 2; min-width: 280px; }
+  }
+</style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="layout">
+    <div class="header">
+      <div class="header-left">
+        <h1>🏁 Deploy <span>Race</span></h1>
+        <div class="live-badge"><div class="live-dot"></div> Live</div>
+      </div>
+      <div class="prize-bar">
+        <span class="prize-label">Prizes claimed:</span>
+        <div class="prize-slots">
+          <div class="prize-slot" id="slot1">🥇</div>
+          <div class="prize-slot" id="slot2">🥈</div>
+          <div class="prize-slot" id="slot3">🥉</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <!-- Left: leaderboard -->
+      <div class="leaderboard" id="leaderboard">
+        <div class="empty">
+          <div class="empty-icon">🚀</div>
+          <p>Waiting for racers…</p>
+          <small>Scan the QR code to verify your DO endpoint</small>
+        </div>
+      </div>
+
+      <!-- Right: QR + code block -->
+      <div class="right-panel">
+        <div class="qr-card">
+          <h3>Join the Race</h3>
+          <p>Scan to verify your DigitalOcean endpoint</p>
+          <img id="qrImg" src="" alt="QR Code">
+        </div>
+
+        <div class="code-card">
+          <div class="code-header">
+            <div class="code-dot red"></div>
+            <div class="code-dot yellow"></div>
+            <div class="code-dot green"></div>
+            <span class="code-title">api_call.py</span>
+          </div>
+          <div class="code-body"><pre><span class="token-kw">from</span> <span class="token-var">openai</span> <span class="token-kw">import</span> <span class="token-fn">OpenAI</span>
+
+<span class="token-comment"># Your Model Access Key from DO console</span>
+<span class="token-var">client</span> = <span class="token-fn">OpenAI</span>(
+  <span class="token-key">api_key</span>=<span class="token-str">"YOUR_MODEL_ACCESS_KEY"</span>,
+  <span class="token-key">base_url</span>=<span class="token-str">"https://inference.do-ai.run/v1"</span>,
+)
+
+<span class="token-var">response</span> = <span class="token-var">client</span>.chat.completions.<span class="token-fn">create</span>(
+  <span class="token-key">model</span>=<span class="token-str">"openai-gpt-oss-120b"</span>,
+  <span class="token-key">max_tokens</span>=<span class="token-num">30</span>,
+  <span class="token-key">messages</span>=[{
+    <span class="token-key">"role"</span>: <span class="token-str">"user"</span>,
+    <span class="token-key">"content"</span>: <span class="token-str">'Say exactly: "Hello from DigitalOcean!"'</span>,
+  }],
+)
+
+<span class="token-fn">print</span>(<span class="token-var">response</span>.choices[<span class="token-num">0</span>].message.content)</pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <img src="/do-logo.png" alt="DigitalOcean">
+  </div>
+
+<script>
+  const PRIZES = 3;
+  let results = [];
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  // QR code
+  const qrImg = document.getElementById('qrImg');
+  qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&color=00D1CA&bgcolor=070F1A&data=${encodeURIComponent(location.origin + '/race')}`;
+
+  function updatePrizeSlots() {
+    for (let i = 1; i <= PRIZES; i++) {
+      const slot = document.getElementById(`slot${i}`);
+      if (results.length >= i) {
+        slot.classList.add('claimed');
+      } else {
+        slot.classList.remove('claimed');
+      }
+    }
+  }
+
+  function formatTime(ts) {
+    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function render() {
+    const board = document.getElementById('leaderboard');
+    if (results.length === 0) {
+      board.innerHTML = `<div class="empty"><div class="empty-icon">🚀</div><p>Waiting for racers…</p><small>Scan the QR code to verify your DO endpoint</small></div>`;
+      return;
+    }
+    board.innerHTML = '';
+    results.forEach((r, idx) => {
+      const pos = idx + 1;
+      const medal = pos <= 3 ? medals[pos - 1] : `#${pos}`;
+      const card = document.createElement('div');
+      card.className = `race-card${pos <= 3 ? ` pos-${pos}` : ''}`;
+      card.innerHTML = `
+        <div class="medal">${medal}</div>
+        <div class="card-body">
+          <div class="card-top">
+            <div class="card-name">${escapeHtml(r.name)}</div>
+            <div class="card-time">${formatTime(r.ts)}</div>
+          </div>
+          <div class="card-response">${escapeHtml(r.response)}</div>
+        </div>`;
+      board.appendChild(card);
+    });
+    updatePrizeSlots();
+  }
+
+  // SSE
+  const evtSource = new EventSource('/api/stream');
+  evtSource.addEventListener('race_finish', (e) => {
+    const entry = JSON.parse(e.data);
+    results.push(entry);
+    render();
+    if (entry.position <= PRIZES) playChime();
+  });
+  evtSource.addEventListener('reset', () => { results = []; render(); });
+
+  // Load existing
+  fetch('/api/race-results').then(r => r.json()).then(data => {
+    results = data || [];
+    render();
+  });
+
+  // Chime for prize winners
+  function playChime() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.5);
+        osc.start(ctx.currentTime + i * 0.12);
+        osc.stop(ctx.currentTime + i * 0.12 + 0.5);
+      });
+    } catch (_) {}
+  }
+
+  function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text || '';
+    return d.innerHTML;
+  }
+</script>
+</body>
+</html>
