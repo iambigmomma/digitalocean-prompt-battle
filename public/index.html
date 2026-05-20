@@ -10,7 +10,6 @@
   :root {
     --do-blue: #0061FF;
     --do-dark: #0B1929;
-    --do-light: #E5F0FF;
     --do-accent: #00D1CA;
     --do-white: #FFFFFF;
     --do-gray: #8899A8;
@@ -43,9 +42,9 @@
   .container {
     position: relative;
     z-index: 1;
-    max-width: 420px;
+    max-width: 480px;
     margin: 0 auto;
-    padding: 24px 20px;
+    padding: 28px 20px 16px;
     width: 100%;
     flex: 1;
     display: flex;
@@ -57,10 +56,10 @@
     margin-bottom: 28px;
   }
 
-  .header .emoji { font-size: 40px; margin-bottom: 12px; display: block; }
+  .header .emoji { font-size: 40px; margin-bottom: 10px; display: block; }
 
   .header h1 {
-    font-size: 22px;
+    font-size: clamp(20px, 5vw, 26px);
     font-weight: 700;
     letter-spacing: -0.5px;
     line-height: 1.2;
@@ -69,7 +68,7 @@
   .header h1 span { color: var(--do-accent); }
 
   .header p {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--do-gray);
     margin-top: 6px;
     line-height: 1.5;
@@ -96,7 +95,7 @@
     padding: 14px 16px;
     color: var(--do-white);
     font-family: 'DM Sans', sans-serif;
-    font-size: 16px;
+    font-size: 16px; /* prevents iOS zoom */
     transition: border-color 0.2s;
   }
 
@@ -112,12 +111,7 @@
 
   .form-group textarea { height: 110px; resize: none; line-height: 1.5; }
 
-  .char-count {
-    text-align: right;
-    font-size: 11px;
-    color: var(--do-gray);
-    margin-top: 4px;
-  }
+  .char-count { text-align: right; font-size: 11px; color: var(--do-gray); margin-top: 4px; }
 
   .submit-btn {
     width: 100%;
@@ -132,12 +126,35 @@
     cursor: pointer;
     transition: all 0.2s;
     margin-top: 8px;
-    letter-spacing: 0.3px;
   }
 
   .submit-btn:active { transform: scale(0.97); }
   .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
+  .view-dishes {
+    text-align: center;
+    padding: 20px 0 8px;
+  }
+
+  .view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 28px;
+    border: 1.5px solid rgba(0,209,202,0.4);
+    border-radius: 12px;
+    color: var(--do-accent);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .view-btn:active { background: rgba(0,209,202,0.1); }
+
+  /* Result */
   .result {
     margin-top: 24px;
     background: rgba(255,255,255,0.04);
@@ -158,45 +175,24 @@
 
   .result-dish {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 20px;
+    font-size: clamp(16px, 4vw, 20px);
     font-weight: 500;
     line-height: 1.4;
     color: var(--do-white);
   }
 
-  .result-pref {
-    margin-top: 12px;
-    font-size: 12px;
-    color: var(--do-gray);
-    line-height: 1.4;
-  }
+  .result-pref { margin-top: 12px; font-size: 12px; color: var(--do-gray); line-height: 1.4; }
 
   .result-img {
     margin-top: 16px;
     width: 100%;
     border-radius: 12px;
     object-fit: cover;
-    max-height: 280px;
+    max-height: 300px;
     animation: slideUp 0.4s ease;
   }
 
-  .img-loading {
-    margin-top: 16px;
-    background: rgba(255,255,255,0.04);
-    border-radius: 12px;
-    height: 160px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--do-gray);
-  }
-
-  .try-again {
-    margin-top: 16px;
-    text-align: center;
-  }
+  .try-again { margin-top: 16px; text-align: center; }
 
   .try-again button {
     background: none;
@@ -207,20 +203,14 @@
     padding: 10px 24px;
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s;
   }
 
-  .try-again button:active { border-color: var(--do-blue); color: var(--do-white); }
-
-  .loading {
-    text-align: center;
-    padding: 32px 0;
-  }
+  /* Loading */
+  .loading { text-align: center; padding: 32px 0; }
 
   .loading-dots span {
     display: inline-block;
-    width: 8px;
-    height: 8px;
+    width: 8px; height: 8px;
     background: var(--do-blue);
     border-radius: 50%;
     margin: 0 4px;
@@ -229,7 +219,6 @@
 
   .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
   .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
-
   .loading p { font-size: 13px; color: var(--do-gray); margin-top: 12px; }
 
   .error {
@@ -242,33 +231,20 @@
     color: var(--do-red);
   }
 
-  .view-dishes {
-    text-align: center;
-    padding: 20px 20px 4px;
-  }
-
-  .view-btn {
-    display: inline-block;
-    padding: 12px 28px;
-    border: 1.5px solid rgba(0,209,202,0.4);
-    border-radius: 12px;
-    color: var(--do-accent);
-    font-size: 15px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s;
-  }
-
-  .view-btn:active {
-    background: rgba(0,209,202,0.1);
-  }
-
+  /* Footer with DO logo */
   .footer {
+    position: relative;
+    z-index: 1;
     text-align: center;
-    padding: 16px 20px;
-    font-size: 11px;
-    color: rgba(255,255,255,0.2);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
   }
+
+  .footer img { height: 20px; width: auto; opacity: 0.5; }
+  .footer span { font-size: 11px; color: rgba(255,255,255,0.2); }
 
   @keyframes slideUp {
     from { opacity: 0; transform: translateY(16px); }
@@ -286,7 +262,6 @@
 
   <div class="container">
     <div class="header">
-      <img src="/do-logo.png" alt="DigitalOcean" style="height:22px;width:auto;margin-bottom:16px;opacity:0.9">
       <span class="emoji">🍽️</span>
       <h1>Recipe <span>Battle</span></h1>
       <p>Tell us what you love to eat. AI conjures a dish and paints it for you.</p>
@@ -307,6 +282,10 @@
       <button class="submit-btn" id="submitBtn" onclick="submitPrompt()">
         Cook Something Up 🔥
       </button>
+
+      <div class="view-dishes">
+        <a href="/display" class="view-btn">🍽️ See All Dishes &amp; Vote</a>
+      </div>
     </div>
 
     <div id="loadingState" style="display:none;">
@@ -319,11 +298,10 @@
     <div id="resultState" style="display:none;"></div>
   </div>
 
-  <div class="view-dishes">
-    <a href="/display" class="view-btn">🍽️ View All Dishes &amp; Vote</a>
+  <div class="footer">
+    <img src="/do-logo.png" alt="DigitalOcean">
+    <span>Powered by DigitalOcean AI Inference</span>
   </div>
-
-  <div class="footer">Powered by DigitalOcean AI Inference</div>
 
 <script>
   const promptInput = document.getElementById('promptInput');
@@ -366,6 +344,9 @@
           <div class="result-dish">${escapeHtml(data.dishName)}</div>
           <div class="result-pref">Based on: "${escapeHtml(data.preferences)}"</div>
           ${imgHtml}
+        </div>
+        <div class="view-dishes" style="padding-top:16px">
+          <a href="/display" class="view-btn">🍽️ See All Dishes &amp; Vote</a>
         </div>
         <div class="try-again"><button onclick="reset()">Try another</button></div>
       `;
