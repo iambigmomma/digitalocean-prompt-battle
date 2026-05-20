@@ -390,5 +390,68 @@
     return d.innerHTML;
   }
 </script>
+
+<!-- NAV MENU -->
+<style>
+  .nav-fab { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
+  .nav-toggle {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(0,97,255,0.85); backdrop-filter: blur(8px);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    color: #fff; font-size: 20px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,97,255,0.4);
+    transition: transform 0.2s;
+  }
+  .nav-toggle:hover { transform: scale(1.08); }
+  .nav-panel {
+    position: absolute; bottom: 54px; right: 0;
+    background: #0D1F2D; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 8px; min-width: 210px;
+    display: none; flex-direction: column; gap: 2px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .nav-panel.open { display: flex; }
+  .nav-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 10px; color: #fff;
+    text-decoration: none; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; transition: background 0.15s;
+  }
+  .nav-link:hover { background: rgba(255,255,255,0.07); }
+  .nav-link.active { background: rgba(0,97,255,0.2); color: #00D1CA; }
+  .nav-sep { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0; }
+</style>
+<div class="nav-fab">
+  <div class="nav-panel" id="navPanel">
+    <a href="/" class="nav-link">🍽️ Recipe Battle <small style="color:#6B7D8E;margin-left:auto">phone</small></a>
+    <a href="/display-recipe" class="nav-link">📺 Recipe Display</a>
+    <div class="nav-sep"></div>
+    <a href="/race" class="nav-link">🏁 Deploy Race <small style="color:#6B7D8E;margin-left:auto">phone</small></a>
+    <a href="/display-race" class="nav-link">📺 Race Display</a>
+    <div class="nav-sep"></div>
+    <a href="/admin" class="nav-link">⚙️ Admin</a>
+  </div>
+  <button class="nav-toggle" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<script>
+  (function(){
+    const cur = location.pathname;
+    document.querySelectorAll('.nav-link').forEach(a => {
+      if (a.getAttribute('href') === cur) a.classList.add('active');
+    });
+  })();
+  function toggleNav() {
+    const p = document.getElementById('navPanel');
+    p.classList.toggle('open');
+    document.getElementById('navToggle').textContent = p.classList.contains('open') ? '✕' : '☰';
+  }
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.nav-fab')) {
+      document.getElementById('navPanel').classList.remove('open');
+      document.getElementById('navToggle').textContent = '☰';
+    }
+  });
+</script>
 </body>
 </html>

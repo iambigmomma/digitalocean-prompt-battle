@@ -227,8 +227,13 @@ app.post("/api/reset", (req, res) => {
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
-app.get("/display", (req, res) => {
+app.get("/display-recipe", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "display.html"));
+});
+
+// Legacy redirect
+app.get("/display", (req, res) => {
+  res.redirect("/display-recipe");
 });
 
 app.get("/admin", (req, res) => {
@@ -245,8 +250,11 @@ app.get("/display-race", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Recipe Battle running on http://localhost:${PORT}`);
-  console.log(`Phone UI:    http://localhost:${PORT}`);
-  console.log(`Big screen:  http://localhost:${PORT}/display`);
-  console.log(`Text Model:  ${DO_MODEL}`);
-  console.log(`Image Model: ${DO_IMAGE_MODEL}`);
+  console.log(`Phone:         http://localhost:${PORT}`);
+  console.log(`Recipe screen: http://localhost:${PORT}/display-recipe`);
+  console.log(`Race screen:   http://localhost:${PORT}/display-race`);
+  console.log(`Race phone:    http://localhost:${PORT}/race`);
+  console.log(`Admin:         http://localhost:${PORT}/admin`);
+  console.log(`Text Model:    ${DO_MODEL}`);
+  console.log(`Image Model:   ${DO_IMAGE_MODEL}`);
 });
