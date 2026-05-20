@@ -4,7 +4,7 @@ const { OpenAI } = require("openai");
 const path = require("path");
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "5mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // ---------------------------------------------------------------------------
@@ -12,9 +12,9 @@ app.use(express.static(path.join(__dirname, "public")));
 // ---------------------------------------------------------------------------
 const PORT = process.env.PORT || 8080;
 const DO_API_KEY = process.env.DO_API_KEY || "";
-const DO_BASE_URL =
-  process.env.DO_BASE_URL || "https://cluster-api.do-ai.run/v1";
-const DO_MODEL = process.env.DO_MODEL || "meta-llama/Llama-3.3-70B-Instruct";
+const DO_BASE_URL = process.env.DO_BASE_URL || "https://inference.do-ai.run/v1";
+const DO_MODEL = process.env.DO_MODEL || "openai-gpt-oss-120b";
+const DO_IMAGE_MODEL = process.env.DO_IMAGE_MODEL || "stable-diffusion-3.5-large";
 const ADMIN_PIN = process.env.ADMIN_PIN || "0000";
 
 const client = new OpenAI({ apiKey: DO_API_KEY, baseURL: DO_BASE_URL });
@@ -22,8 +22,9 @@ const client = new OpenAI({ apiKey: DO_API_KEY, baseURL: DO_BASE_URL });
 // ---------------------------------------------------------------------------
 // In-memory store
 // ---------------------------------------------------------------------------
-let entries = []; // { id, name, prompt, response, ts, starred }
-let sseClients = []; // SSE connections for the display screen
+let entries = []; // { id, name, preferences, dishName, imageUrl, votes, ts, starred }
+let sseClients = [];
+let namesRevealed = false;
 
 // ---------------------------------------------------------------------------
 // SSE — live feed for the big screen
@@ -47,63 +48,99 @@ function broadcast(event, data) {
 }
 
 // ---------------------------------------------------------------------------
-// POST /api/prompt — phone submits a prompt
+// POST /api/prompt — phone submits food preferences
 // ---------------------------------------------------------------------------
 app.post("/api/prompt", async (req, res) => {
-  const { name, prompt } = req.body;
-  if (!prompt || prompt.trim().length === 0) {
-    return res.status(400).json({ error: "Prompt is required" });
+  const { name, preferences } = req.body;
+  if (!preferences || preferences.trim().length === 0) {
+    return res.status(400).json({ error: "Food preferences are required" });
   }
 
   const entry = {
     id: entries.length + 1,
     name: (name || "Anonymous").slice(0, 30),
-    prompt: prompt.slice(0, 300),
-    response: null,
+    preferences: preferences.slice(0, 300),
+    dishName: null,
+    imageUrl: null,
+    votes: 0,
     ts: Date.now(),
     starred: false,
   };
   entries.push(entry);
 
-  // Broadcast that a new prompt arrived (response pending)
+  // Broadcast immediately — display shows spinner
   broadcast("new_prompt", entry);
 
   try {
+    // Step 1: Generate creative dish name
     const completion = await client.chat.completions.create({
       model: DO_MODEL,
-      max_tokens: 200,
+      max_tokens: 150,
       temperature: 0.9,
       messages: [
         {
           role: "system",
           content:
-            "You are a creative advertising copywriter. The user will give you a one-sentence creative direction. Respond with ONLY a short, punchy ad tagline for DigitalOcean (max 15 words). No quotes, no explanation, just the tagline.",
+            "You are a creative Michelin-star chef. The user will describe their food preferences or favourite ingredients. Respond with ONLY a short, creative dish name (max 8 words). No explanation, no recipe, just the dish name.",
         },
-        { role: "user", content: entry.prompt },
+        { role: "user", content: entry.preferences },
       ],
     });
 
-    entry.response =
-      completion.choices?.[0]?.message?.content?.trim() || "(no response)";
+    entry.dishName =
+      completion.choices?.[0]?.message?.content?.trim() || "(unnamed dish)";
+
+    // Broadcast dish name — display updates card while image loads
+    broadcast("dish_ready", entry);
+
+    // Step 2: Generate food image
+    try {
+      const imageResp = await client.images.generate({
+        model: DO_IMAGE_MODEL,
+        prompt: `A stunning, appetizing food photo of ${entry.dishName}. Professional food photography, beautiful plating, warm lighting, high resolution.`,
+        n: 1,
+        size: "1024x1024",
+      });
+
+      const imageData = imageResp.data?.[0];
+      if (imageData?.url) {
+        entry.imageUrl = imageData.url;
+      } else if (imageData?.b64_json) {
+        entry.imageUrl = `data:image/png;base64,${imageData.b64_json}`;
+      }
+    } catch (imgErr) {
+      console.error("Image generation error:", imgErr.message);
+      // imageUrl stays null — display shows dish name as fallback
+    }
   } catch (err) {
     console.error("Inference error:", err.message);
-    entry.response = `⚠️ Error: ${err.message}`;
+    entry.dishName = `⚠️ ${err.message}`;
   }
 
-  // Broadcast the completed entry
   broadcast("response_ready", entry);
   res.json(entry);
 });
 
 // ---------------------------------------------------------------------------
-// GET /api/entries — fetch all entries (for display page reload)
+// GET /api/entries — fetch all entries + reveal state (for display page reload)
 // ---------------------------------------------------------------------------
 app.get("/api/entries", (req, res) => {
-  res.json(entries);
+  res.json({ entries, namesRevealed });
 });
 
 // ---------------------------------------------------------------------------
-// POST /api/star/:id — host stars/unstars an entry (for judging)
+// POST /api/vote/:id — anyone can vote (no PIN)
+// ---------------------------------------------------------------------------
+app.post("/api/vote/:id", (req, res) => {
+  const entry = entries.find((e) => e.id === parseInt(req.params.id));
+  if (!entry) return res.status(404).json({ error: "Not found" });
+  entry.votes += 1;
+  broadcast("vote_update", entry);
+  res.json(entry);
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/star/:id — host stars/unstars an entry
 // ---------------------------------------------------------------------------
 app.post("/api/star/:id", (req, res) => {
   const { pin } = req.body;
@@ -116,12 +153,24 @@ app.post("/api/star/:id", (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/reveal — toggle name visibility (admin)
+// ---------------------------------------------------------------------------
+app.post("/api/reveal", (req, res) => {
+  const { pin } = req.body;
+  if (pin !== ADMIN_PIN) return res.status(403).json({ error: "Wrong PIN" });
+  namesRevealed = !namesRevealed;
+  broadcast("reveal_toggle", { namesRevealed });
+  res.json({ namesRevealed });
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/reset — clear all entries (admin)
 // ---------------------------------------------------------------------------
 app.post("/api/reset", (req, res) => {
   const { pin } = req.body;
   if (pin !== ADMIN_PIN) return res.status(403).json({ error: "Wrong PIN" });
   entries = [];
+  namesRevealed = false;
   broadcast("reset", {});
   res.json({ ok: true });
 });
@@ -134,8 +183,9 @@ app.get("/display", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Prompt Battle running on http://localhost:${PORT}`);
+  console.log(`Recipe Battle running on http://localhost:${PORT}`);
   console.log(`Phone UI:    http://localhost:${PORT}`);
   console.log(`Big screen:  http://localhost:${PORT}/display`);
-  console.log(`Model:       ${DO_MODEL}`);
+  console.log(`Text Model:  ${DO_MODEL}`);
+  console.log(`Image Model: ${DO_IMAGE_MODEL}`);
 });

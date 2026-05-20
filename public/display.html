@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prompt Battle — Live Feed</title>
+<title>Recipe Battle — Live Display</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16,6 +16,7 @@
     --do-card: rgba(255,255,255,0.04);
     --do-border: rgba(255,255,255,0.06);
     --do-star: #FFD233;
+    --do-heart: #FF4F7B;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -28,7 +29,6 @@
     overflow: hidden;
   }
 
-  /* Background effects */
   .bg-grid {
     position: fixed;
     inset: 0;
@@ -40,33 +40,19 @@
   }
 
   .bg-glow-top {
-    position: fixed;
-    top: -200px;
-    right: -100px;
-    width: 600px;
-    height: 600px;
+    position: fixed; top: -200px; right: -100px;
+    width: 600px; height: 600px;
     background: radial-gradient(circle, rgba(0,97,255,0.12) 0%, transparent 70%);
     pointer-events: none;
   }
 
-  .bg-glow-bottom {
-    position: fixed;
-    bottom: -300px;
-    left: -100px;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(0,209,202,0.08) 0%, transparent 70%);
-    pointer-events: none;
-  }
-
-  /* Layout */
   .layout {
     position: relative;
     z-index: 1;
     height: 100vh;
     display: flex;
     flex-direction: column;
-    padding: 32px 40px;
+    padding: 24px 32px;
   }
 
   /* Header */
@@ -74,204 +60,177 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 28px;
+    margin-bottom: 20px;
     flex-shrink: 0;
   }
 
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
 
-  .header-left h1 {
-    font-size: 28px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-
+  .header-left h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
   .header-left h1 span { color: var(--do-accent); }
 
   .live-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    display: flex; align-items: center; gap: 6px;
     background: rgba(255,79,79,0.15);
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #FF4F4F;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; color: #FF4F4F;
+    text-transform: uppercase; letter-spacing: 1px;
   }
 
   .live-dot {
-    width: 8px;
-    height: 8px;
-    background: #FF4F4F;
-    border-radius: 50%;
+    width: 7px; height: 7px;
+    background: #FF4F4F; border-radius: 50%;
     animation: blink 1.5s ease infinite;
   }
 
-  .counter {
-    font-size: 14px;
-    color: var(--do-gray);
-  }
+  .counter { font-size: 13px; color: var(--do-gray); }
+  .counter strong { color: var(--do-white); font-size: 20px; font-weight: 700; }
 
-  .counter strong {
-    color: var(--do-white);
-    font-size: 22px;
-    font-weight: 700;
-  }
-
-  /* Feed */
-  .feed {
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
+  /* Grid */
   .feed-scroll {
     flex: 1;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-right: 12px;
-    scroll-behavior: smooth;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    align-content: start;
+    padding-right: 8px;
   }
 
-  /* Hide scrollbar but keep scroll */
   .feed-scroll::-webkit-scrollbar { width: 4px; }
   .feed-scroll::-webkit-scrollbar-track { background: transparent; }
   .feed-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
 
-  /* Entry card */
+  /* Card */
   .entry {
     background: var(--do-card);
     border: 1px solid var(--do-border);
     border-radius: 16px;
-    padding: 20px 24px;
-    display: grid;
-    grid-template-columns: 48px 1fr auto;
-    gap: 16px;
-    align-items: start;
+    overflow: hidden;
     animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    transition: border-color 0.3s, background 0.3s;
-  }
-
-  .entry.starred {
-    border-color: var(--do-star);
-    background: rgba(255,210,51,0.04);
-  }
-
-  .entry-num {
-    width: 48px;
-    height: 48px;
-    background: rgba(0,97,255,0.12);
-    border-radius: 12px;
+    transition: border-color 0.3s;
     display: flex;
+    flex-direction: column;
+  }
+
+  .entry.starred { border-color: var(--do-star); }
+
+  /* Image area */
+  .card-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .card-placeholder {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 18px;
-    color: var(--do-blue);
-    flex-shrink: 0;
-  }
-
-  .entry.starred .entry-num {
-    background: rgba(255,210,51,0.15);
-    color: var(--do-star);
-  }
-
-  .entry-content { min-width: 0; }
-
-  .entry-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-  }
-
-  .entry-name {
-    font-weight: 700;
-    font-size: 15px;
-  }
-
-  .entry-prompt {
-    font-size: 13px;
-    color: var(--do-gray);
-    margin-bottom: 10px;
-    line-height: 1.4;
-  }
-
-  .entry-response {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 17px;
-    font-weight: 500;
-    line-height: 1.5;
-    color: var(--do-white);
-  }
-
-  .entry-pending {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    gap: 10px;
+    background: rgba(255,255,255,0.03);
     color: var(--do-gray);
     font-size: 13px;
   }
 
-  .entry-pending .spinner {
-    width: 14px;
-    height: 14px;
+  .card-placeholder .spinner {
+    width: 24px; height: 24px;
     border: 2px solid rgba(255,255,255,0.1);
     border-top-color: var(--do-blue);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
 
-  .entry-star {
-    font-size: 24px;
-    cursor: pointer;
-    opacity: 0.2;
-    transition: opacity 0.2s, transform 0.2s;
-    user-select: none;
-    align-self: center;
+  .card-placeholder .dish-preview {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--do-white);
+    text-align: center;
+    padding: 0 16px;
+    line-height: 1.4;
   }
 
-  .entry-star:hover { opacity: 0.6; transform: scale(1.1); }
-  .entry.starred .entry-star { opacity: 1; }
+  .card-placeholder .food-emoji { font-size: 48px; }
+
+  /* Card footer */
+  .card-footer {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-top: 1px solid var(--do-border);
+  }
+
+  .card-info { min-width: 0; flex: 1; }
+
+  .card-dish {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--do-white);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card-name {
+    font-size: 11px;
+    color: var(--do-gray);
+    margin-top: 2px;
+    transition: filter 0.4s ease;
+  }
+
+  .card-name.blurred { filter: blur(6px); user-select: none; }
+
+  /* Vote button */
+  .vote-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,79,123,0.12);
+    border: 1px solid rgba(255,79,123,0.2);
+    border-radius: 20px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--do-heart);
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .vote-btn:hover { background: rgba(255,79,123,0.22); transform: scale(1.05); }
+  .vote-btn:active { transform: scale(0.95); }
+  .vote-btn.voted { background: rgba(255,79,123,0.25); border-color: var(--do-heart); }
+
+  .vote-btn .heart { font-size: 15px; }
 
   /* Empty state */
   .empty {
-    flex: 1;
+    grid-column: 1 / -1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     color: var(--do-gray);
     gap: 12px;
+    padding: 80px 0;
   }
 
-  .empty-icon {
-    font-size: 48px;
-    opacity: 0.3;
-  }
-
-  .empty p {
-    font-size: 18px;
-  }
+  .empty-icon { font-size: 48px; opacity: 0.3; }
+  .empty p { font-size: 18px; }
 
   /* Admin bar */
   .admin-bar {
     position: fixed;
-    bottom: 16px;
-    right: 24px;
-    display: flex;
-    gap: 8px;
+    bottom: 16px; right: 24px;
+    display: flex; gap: 8px;
     z-index: 10;
   }
 
@@ -288,6 +247,7 @@
   }
 
   .admin-btn:hover { background: rgba(255,255,255,0.1); color: var(--do-white); }
+  .admin-btn.active { background: rgba(0,209,202,0.15); border-color: var(--do-accent); color: var(--do-accent); }
   .admin-btn.danger:hover { background: rgba(255,79,79,0.15); color: #FF4F4F; }
 
   @keyframes cardIn {
@@ -300,34 +260,30 @@
     50% { opacity: 0.3; }
   }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
   <div class="bg-grid"></div>
   <div class="bg-glow-top"></div>
-  <div class="bg-glow-bottom"></div>
 
   <div class="layout">
     <div class="header">
       <div class="header-left">
-        <h1>Prompt <span>Battle</span></h1>
+        <h1>🍽️ Recipe <span>Battle</span></h1>
         <div class="live-badge"><div class="live-dot"></div> Live</div>
       </div>
       <div class="counter">
-        <strong id="entryCount">0</strong> prompts submitted
+        <strong id="entryCount">0</strong> dishes submitted
       </div>
     </div>
 
-    <div class="feed">
-      <div class="feed-scroll" id="feed"></div>
-    </div>
+    <div class="feed-scroll" id="feed"></div>
   </div>
 
   <div class="admin-bar">
-    <button class="admin-btn" onclick="toggleAdmin()">🔑 Admin</button>
+    <button class="admin-btn" id="toggleBtn" onclick="toggleAdmin()">🔑 Admin</button>
+    <button class="admin-btn active" id="revealBtn" style="display:none" onclick="toggleReveal()">👁 Reveal Names</button>
     <button class="admin-btn danger" id="resetBtn" style="display:none" onclick="resetAll()">🗑 Reset All</button>
   </div>
 
@@ -335,8 +291,12 @@
   const feed = document.getElementById('feed');
   const entryCount = document.getElementById('entryCount');
   let entries = [];
+  let namesRevealed = false;
   let adminMode = false;
   const ADMIN_PIN = prompt("Enter admin PIN (or cancel for view-only):") || "";
+
+  // Track voted entries per session
+  const voted = new Set(JSON.parse(localStorage.getItem('rb_voted') || '[]'));
 
   // -------------------------------------------------------
   // Render
@@ -347,34 +307,22 @@
     if (entries.length === 0) {
       feed.innerHTML = `
         <div class="empty">
-          <div class="empty-icon">📱</div>
-          <p>Waiting for prompts…</p>
+          <div class="empty-icon">🍴</div>
+          <p>Waiting for dishes…</p>
         </div>`;
       return;
     }
 
-    // Only re-render if new entries or updates
-    const existingIds = new Set([...feed.querySelectorAll('.entry')].map(e => e.dataset.id));
-
     entries.forEach(entry => {
       const existing = feed.querySelector(`[data-id="${entry.id}"]`);
-
       if (existing) {
-        // Update existing entry
         updateCard(existing, entry);
       } else {
-        // Remove empty state if present
         const empty = feed.querySelector('.empty');
         if (empty) empty.remove();
-
-        // Add new card
-        const card = createCard(entry);
-        feed.appendChild(card);
+        feed.appendChild(createCard(entry));
       }
     });
-
-    // Auto-scroll to bottom
-    feed.scrollTop = feed.scrollHeight;
   }
 
   function createCard(entry) {
@@ -391,37 +339,70 @@
   }
 
   function cardHTML(entry) {
-    const responseHTML = entry.response
-      ? `<div class="entry-response">${escapeHtml(entry.response)}</div>`
-      : `<div class="entry-pending"><div class="spinner"></div> Generating…</div>`;
+    let imageArea = '';
+    if (entry.imageUrl) {
+      imageArea = `<img class="card-image" src="${escapeAttr(entry.imageUrl)}" alt="${escapeHtml(entry.dishName)}">`;
+    } else if (entry.dishName) {
+      // Dish name ready but image still generating
+      imageArea = `
+        <div class="card-placeholder">
+          <div class="spinner"></div>
+          <div class="dish-preview">${escapeHtml(entry.dishName)}</div>
+          <div style="font-size:11px">Painting your dish…</div>
+        </div>`;
+    } else {
+      // Nothing ready yet
+      imageArea = `
+        <div class="card-placeholder">
+          <div class="spinner"></div>
+          <div style="font-size:11px">Chef is thinking…</div>
+        </div>`;
+    }
+
+    const hasVoted = voted.has(entry.id);
+    const nameClass = namesRevealed ? 'card-name' : 'card-name blurred';
+    const dishLabel = entry.dishName || '…';
 
     return `
-      <div class="entry-num">#${entry.id}</div>
-      <div class="entry-content">
-        <div class="entry-meta">
-          <span class="entry-name">${escapeHtml(entry.name)}</span>
+      ${imageArea}
+      <div class="card-footer">
+        <div class="card-info">
+          <div class="card-dish">${escapeHtml(dishLabel)}</div>
+          <div class="${nameClass}">${escapeHtml(entry.name)}</div>
         </div>
-        <div class="entry-prompt">"${escapeHtml(entry.prompt)}"</div>
-        ${responseHTML}
-      </div>
-      <div class="entry-star" onclick="toggleStar(${entry.id})">
-        ${entry.starred ? '⭐' : '☆'}
+        <button class="vote-btn${hasVoted ? ' voted' : ''}" onclick="vote(${entry.id})">
+          <span class="heart">${hasVoted ? '❤️' : '🤍'}</span>
+          <span>${entry.votes}</span>
+        </button>
       </div>
     `;
   }
 
   // -------------------------------------------------------
-  // SSE — real-time updates
+  // SSE
   // -------------------------------------------------------
   const evtSource = new EventSource('/api/stream');
 
   evtSource.addEventListener('new_prompt', (e) => {
-    const entry = JSON.parse(e.data);
-    entries.push(entry);
+    entries.push(JSON.parse(e.data));
+    render();
+  });
+
+  evtSource.addEventListener('dish_ready', (e) => {
+    const updated = JSON.parse(e.data);
+    const idx = entries.findIndex(x => x.id === updated.id);
+    if (idx !== -1) entries[idx] = updated;
     render();
   });
 
   evtSource.addEventListener('response_ready', (e) => {
+    const updated = JSON.parse(e.data);
+    const idx = entries.findIndex(x => x.id === updated.id);
+    if (idx !== -1) entries[idx] = updated;
+    render();
+  });
+
+  evtSource.addEventListener('vote_update', (e) => {
     const updated = JSON.parse(e.data);
     const idx = entries.findIndex(x => x.id === updated.id);
     if (idx !== -1) entries[idx] = updated;
@@ -435,8 +416,18 @@
     render();
   });
 
+  evtSource.addEventListener('reveal_toggle', (e) => {
+    namesRevealed = JSON.parse(e.data).namesRevealed;
+    updateRevealBtn();
+    render();
+  });
+
   evtSource.addEventListener('reset', () => {
     entries = [];
+    namesRevealed = false;
+    voted.clear();
+    localStorage.setItem('rb_voted', '[]');
+    updateRevealBtn();
     render();
   });
 
@@ -446,29 +437,50 @@
   fetch('/api/entries')
     .then(r => r.json())
     .then(data => {
-      entries = data;
+      entries = data.entries || [];
+      namesRevealed = data.namesRevealed || false;
+      updateRevealBtn();
       render();
     });
 
   // -------------------------------------------------------
+  // Voting
+  // -------------------------------------------------------
+  function vote(id) {
+    if (voted.has(id)) return;
+    voted.add(id);
+    localStorage.setItem('rb_voted', JSON.stringify([...voted]));
+    fetch(`/api/vote/${id}`, { method: 'POST' });
+    // Optimistically update
+    const entry = entries.find(e => e.id === id);
+    if (entry) { entry.votes += 1; render(); }
+  }
+
+  // -------------------------------------------------------
   // Admin actions
   // -------------------------------------------------------
-  function toggleStar(id) {
+  function toggleAdmin() {
+    adminMode = !adminMode;
+    document.getElementById('revealBtn').style.display = adminMode ? 'inline-block' : 'none';
+    document.getElementById('resetBtn').style.display = adminMode ? 'inline-block' : 'none';
+  }
+
+  function updateRevealBtn() {
+    const btn = document.getElementById('revealBtn');
+    btn.textContent = namesRevealed ? '🙈 Hide Names' : '👁 Reveal Names';
+  }
+
+  function toggleReveal() {
     if (!ADMIN_PIN) return;
-    fetch(`/api/star/${id}`, {
+    fetch('/api/reveal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin: ADMIN_PIN }),
     });
   }
 
-  function toggleAdmin() {
-    adminMode = !adminMode;
-    document.getElementById('resetBtn').style.display = adminMode ? 'inline-block' : 'none';
-  }
-
   function resetAll() {
-    if (!confirm('Reset all entries? This cannot be undone.')) return;
+    if (!confirm('Reset all dishes? This cannot be undone.')) return;
     fetch('/api/reset', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -480,6 +492,10 @@
     const div = document.createElement('div');
     div.textContent = text || '';
     return div.innerHTML;
+  }
+
+  function escapeAttr(text) {
+    return (text || '').replace(/"/g, '&quot;');
   }
 </script>
 </body>
