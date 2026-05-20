@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Battle — Live Feed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --do-blue: #0061FF;
+    --do-dark: #070F1A;
+    --do-accent: #00D1CA;
+    --do-white: #FFFFFF;
+    --do-gray: #6B7D8E;
+    --do-card: rgba(255,255,255,0.04);
+    --do-border: rgba(255,255,255,0.06);
+    --do-star: #FFD233;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--do-dark);
+    color: var(--do-white);
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Background effects */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,97,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,97,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  .bg-glow-top {
+    position: fixed;
+    top: -200px;
+    right: -100px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0,97,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .bg-glow-bottom {
+    position: fixed;
+    bottom: -300px;
+    left: -100px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(0,209,202,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Layout */
+  .layout {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 32px 40px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-shrink: 0;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .header-left h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .header-left h1 span { color: var(--do-accent); }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,79,79,0.15);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #FF4F4F;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    background: #FF4F4F;
+    border-radius: 50%;
+    animation: blink 1.5s ease infinite;
+  }
+
+  .counter {
+    font-size: 14px;
+    color: var(--do-gray);
+  }
+
+  .counter strong {
+    color: var(--do-white);
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  /* Feed */
+  .feed {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .feed-scroll {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 12px;
+    scroll-behavior: smooth;
+  }
+
+  /* Hide scrollbar but keep scroll */
+  .feed-scroll::-webkit-scrollbar { width: 4px; }
+  .feed-scroll::-webkit-scrollbar-track { background: transparent; }
+  .feed-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  /* Entry card */
+  .entry {
+    background: var(--do-card);
+    border: 1px solid var(--do-border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    gap: 16px;
+    align-items: start;
+    animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: border-color 0.3s, background 0.3s;
+  }
+
+  .entry.starred {
+    border-color: var(--do-star);
+    background: rgba(255,210,51,0.04);
+  }
+
+  .entry-num {
+    width: 48px;
+    height: 48px;
+    background: rgba(0,97,255,0.12);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--do-blue);
+    flex-shrink: 0;
+  }
+
+  .entry.starred .entry-num {
+    background: rgba(255,210,51,0.15);
+    color: var(--do-star);
+  }
+
+  .entry-content { min-width: 0; }
+
+  .entry-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .entry-name {
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .entry-prompt {
+    font-size: 13px;
+    color: var(--do-gray);
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+
+  .entry-response {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--do-white);
+  }
+
+  .entry-pending {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--do-gray);
+    font-size: 13px;
+  }
+
+  .entry-pending .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-top-color: var(--do-blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .entry-star {
+    font-size: 24px;
+    cursor: pointer;
+    opacity: 0.2;
+    transition: opacity 0.2s, transform 0.2s;
+    user-select: none;
+    align-self: center;
+  }
+
+  .entry-star:hover { opacity: 0.6; transform: scale(1.1); }
+  .entry.starred .entry-star { opacity: 1; }
+
+  /* Empty state */
+  .empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--do-gray);
+    gap: 12px;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    opacity: 0.3;
+  }
+
+  .empty p {
+    font-size: 18px;
+  }
+
+  /* Admin bar */
+  .admin-bar {
+    position: fixed;
+    bottom: 16px;
+    right: 24px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .admin-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--do-gray);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .admin-btn:hover { background: rgba(255,255,255,0.1); color: var(--do-white); }
+  .admin-btn.danger:hover { background: rgba(255,79,79,0.15); color: #FF4F4F; }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow-top"></div>
+  <div class="bg-glow-bottom"></div>
+
+  <div class="layout">
+    <div class="header">
+      <div class="header-left">
+        <h1>Prompt <span>Battle</span></h1>
+        <div class="live-badge"><div class="live-dot"></div> Live</div>
+      </div>
+      <div class="counter">
+        <strong id="entryCount">0</strong> prompts submitted
+      </div>
+    </div>
+
+    <div class="feed">
+      <div class="feed-scroll" id="feed"></div>
+    </div>
+  </div>
+
+  <div class="admin-bar">
+    <button class="admin-btn" onclick="toggleAdmin()">🔑 Admin</button>
+    <button class="admin-btn danger" id="resetBtn" style="display:none" onclick="resetAll()">🗑 Reset All</button>
+  </div>
+
+<script>
+  const feed = document.getElementById('feed');
+  const entryCount = document.getElementById('entryCount');
+  let entries = [];
+  let adminMode = false;
+  const ADMIN_PIN = prompt("Enter admin PIN (or cancel for view-only):") || "";
+
+  // -------------------------------------------------------
+  // Render
+  // -------------------------------------------------------
+  function render() {
+    entryCount.textContent = entries.length;
+
+    if (entries.length === 0) {
+      feed.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">📱</div>
+          <p>Waiting for prompts…</p>
+        </div>`;
+      return;
+    }
+
+    // Only re-render if new entries or updates
+    const existingIds = new Set([...feed.querySelectorAll('.entry')].map(e => e.dataset.id));
+
+    entries.forEach(entry => {
+      const existing = feed.querySelector(`[data-id="${entry.id}"]`);
+
+      if (existing) {
+        // Update existing entry
+        updateCard(existing, entry);
+      } else {
+        // Remove empty state if present
+        const empty = feed.querySelector('.empty');
+        if (empty) empty.remove();
+
+        // Add new card
+        const card = createCard(entry);
+        feed.appendChild(card);
+      }
+    });
+
+    // Auto-scroll to bottom
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  function createCard(entry) {
+    const div = document.createElement('div');
+    div.className = `entry${entry.starred ? ' starred' : ''}`;
+    div.dataset.id = entry.id;
+    div.innerHTML = cardHTML(entry);
+    return div;
+  }
+
+  function updateCard(el, entry) {
+    el.className = `entry${entry.starred ? ' starred' : ''}`;
+    el.innerHTML = cardHTML(entry);
+  }
+
+  function cardHTML(entry) {
+    const responseHTML = entry.response
+      ? `<div class="entry-response">${escapeHtml(entry.response)}</div>`
+      : `<div class="entry-pending"><div class="spinner"></div> Generating…</div>`;
+
+    return `
+      <div class="entry-num">#${entry.id}</div>
+      <div class="entry-content">
+        <div class="entry-meta">
+          <span class="entry-name">${escapeHtml(entry.name)}</span>
+        </div>
+        <div class="entry-prompt">"${escapeHtml(entry.prompt)}"</div>
+        ${responseHTML}
+      </div>
+      <div class="entry-star" onclick="toggleStar(${entry.id})">
+        ${entry.starred ? '⭐' : '☆'}
+      </div>
+    `;
+  }
+
+  // -------------------------------------------------------
+  // SSE — real-time updates
+  // -------------------------------------------------------
+  const evtSource = new EventSource('/api/stream');
+
+  evtSource.addEventListener('new_prompt', (e) => {
+    const entry = JSON.parse(e.data);
+    entries.push(entry);
+    render();
+  });
+
+  evtSource.addEventListener('response_ready', (e) => {
+    const updated = JSON.parse(e.data);
+    const idx = entries.findIndex(x => x.id === updated.id);
+    if (idx !== -1) entries[idx] = updated;
+    render();
+  });
+
+  evtSource.addEventListener('star_toggle', (e) => {
+    const updated = JSON.parse(e.data);
+    const idx = entries.findIndex(x => x.id === updated.id);
+    if (idx !== -1) entries[idx] = updated;
+    render();
+  });
+
+  evtSource.addEventListener('reset', () => {
+    entries = [];
+    render();
+  });
+
+  // -------------------------------------------------------
+  // Initial load
+  // -------------------------------------------------------
+  fetch('/api/entries')
+    .then(r => r.json())
+    .then(data => {
+      entries = data;
+      render();
+    });
+
+  // -------------------------------------------------------
+  // Admin actions
+  // -------------------------------------------------------
+  function toggleStar(id) {
+    if (!ADMIN_PIN) return;
+    fetch(`/api/star/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: ADMIN_PIN }),
+    });
+  }
+
+  function toggleAdmin() {
+    adminMode = !adminMode;
+    document.getElementById('resetBtn').style.display = adminMode ? 'inline-block' : 'none';
+  }
+
+  function resetAll() {
+    if (!confirm('Reset all entries? This cannot be undone.')) return;
+    fetch('/api/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: ADMIN_PIN }),
+    });
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "prompt-battle",
+  "version": "1.0.0",
+  "description": "DigitalOcean Masterclass — Prompt Battle Live App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "openai": "^4.73.0",
+    "dotenv": "^16.4.5"
+  }
+}
