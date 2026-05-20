@@ -23,6 +23,7 @@ const client = new OpenAI({ apiKey: DO_API_KEY, baseURL: DO_BASE_URL });
 // In-memory store
 // ---------------------------------------------------------------------------
 let entries = []; // { id, name, preferences, dishName, imageUrl, votes, ts, starred }
+let raceResults = []; // { id, name, ts, position, response }
 let sseClients = [];
 let namesRevealed = false;
 
@@ -164,12 +165,60 @@ app.post("/api/reveal", (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/race — attendee verifies their own DO API key (Round 2)
+// CRITICAL: key is used for one call only, never stored or logged anywhere
+// ---------------------------------------------------------------------------
+app.post("/api/race", async (req, res) => {
+  const { name, key } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: "Name is required" });
+  if (!key || !key.trim()) return res.status(400).json({ error: "API key is required" });
+
+  const tempClient = new OpenAI({ apiKey: key.trim(), baseURL: DO_BASE_URL });
+
+  try {
+    const completion = await tempClient.chat.completions.create({
+      model: DO_MODEL,
+      max_tokens: 30,
+      temperature: 0.1,
+      messages: [{ role: "user", content: 'Say exactly: "Hello from DigitalOcean!"' }],
+    });
+
+    const response = completion.choices?.[0]?.message?.content?.trim() || "Hello from DigitalOcean!";
+    const entry = {
+      id: raceResults.length + 1,
+      name: name.trim().slice(0, 30),
+      ts: Date.now(),
+      position: raceResults.length + 1,
+      response,
+    };
+    raceResults.push(entry);
+    broadcast("race_finish", entry);
+    res.json(entry);
+  } catch (err) {
+    let message = "Invalid API key — check your Model Access Key in the DO console";
+    if (err.status === 429) message = "Rate limit hit — wait a moment and try again";
+    if (err.status === 404) message = "Model not found — make sure your key has Inference access";
+    if (err.status === 401) message = "Invalid API key — check your Model Access Key in the DO console";
+    res.status(400).json({ error: message });
+  }
+  // key is garbage-collected here — never persisted
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/race-results — fetch all race results (for display page reload)
+// ---------------------------------------------------------------------------
+app.get("/api/race-results", (req, res) => {
+  res.json(raceResults);
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/reset — clear all entries (admin)
 // ---------------------------------------------------------------------------
 app.post("/api/reset", (req, res) => {
   const { pin } = req.body;
   if (pin !== ADMIN_PIN) return res.status(403).json({ error: "Wrong PIN" });
   entries = [];
+  raceResults = [];
   namesRevealed = false;
   broadcast("reset", {});
   res.json({ ok: true });
@@ -184,6 +233,10 @@ app.get("/display", (req, res) => {
 
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+app.get("/race", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "race.html"));
 });
 
 app.listen(PORT, () => {
