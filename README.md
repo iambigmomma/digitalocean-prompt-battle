@@ -55,8 +55,8 @@ npm start
 | Variable | Value |
 |----------|-------|
 | `DO_API_KEY` | Your Model Access Key from the SI console |
-| `DO_BASE_URL` | `https://cluster-api.do-ai.run/v1` |
-| `DO_MODEL` | `meta-llama/Llama-3.3-70B-Instruct` (or any model from the catalog) |
+| `DO_BASE_URL` | `https://inference.do-ai.run/v1` |
+| `DO_MODEL` | `openai-gpt-oss-120b` (or any model from the catalog) |
 | `ADMIN_PIN` | A 4-digit PIN for the display admin controls |
 
 5. Deploy. Takes ~2 minutes.
@@ -72,8 +72,8 @@ doctl apps create --spec .do/app.yaml
 | Env Variable | Default | Description |
 |-------------|---------|-------------|
 | `DO_API_KEY` | (required) | DigitalOcean Model Access Key |
-| `DO_BASE_URL` | `https://cluster-api.do-ai.run/v1` | SI endpoint base URL |
-| `DO_MODEL` | `meta-llama/Llama-3.3-70B-Instruct` | Model to use for generation |
+| `DO_BASE_URL` | `https://inference.do-ai.run/v1` | SI endpoint base URL |
+| `DO_MODEL` | `openai-gpt-oss-120b` | Model to use for generation |
 | `PORT` | `8080` | Server port |
 | `ADMIN_PIN` | `0000` | PIN for admin actions on the display page |
 

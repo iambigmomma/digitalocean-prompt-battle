@@ -1,0 +1,25 @@
+name: digitalocean-prompt-battle
+region: sgp
+services:
+- name: web
+  github:
+    repo: iambigmomma/digitalocean-prompt-battle
+    branch: main
+    deploy_on_push: true
+  dockerfile_path: Dockerfile
+  http_port: 8080
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-0.5gb
+  envs:
+  - key: DO_API_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: DO_BASE_URL
+    scope: RUN_TIME
+    value: https://inference.do-ai.run/v1
+  - key: DO_MODEL
+    scope: RUN_TIME
+    value: openai-gpt-oss-120b
+  - key: ADMIN_PIN
+    scope: RUN_TIME
+    value: do_EMEA_shark
