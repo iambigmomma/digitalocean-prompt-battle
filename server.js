@@ -280,6 +280,18 @@ app.post("/api/reset", (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/reset-race — clear only race results (admin)
+// ---------------------------------------------------------------------------
+app.post("/api/reset-race", (req, res) => {
+  const { pin } = req.body;
+  if (pin !== ADMIN_PIN) return res.status(403).json({ error: "Wrong PIN" });
+  raceResults = [];
+  db.exec("DELETE FROM race_results;");
+  broadcast("race_reset", {});
+  res.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
 app.get("/display-recipe", (req, res) => {

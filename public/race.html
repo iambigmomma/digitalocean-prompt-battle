@@ -407,6 +407,17 @@
   const PRIZES = 3;
   const REFERRAL_URL = 'https://m.do.co/c/07305abe40de';
 
+  // Listen for race reset from host — clear local state so user can re-verify
+  const _sse = new EventSource('/api/stream');
+  _sse.addEventListener('race_reset', () => {
+    localStorage.removeItem('rb_race');
+    location.reload();
+  });
+  _sse.addEventListener('reset', () => {
+    localStorage.removeItem('rb_race');
+    location.reload();
+  });
+
   // Set referral link
   document.getElementById('referralLink').href = REFERRAL_URL;
   document.getElementById('referralQr').src =

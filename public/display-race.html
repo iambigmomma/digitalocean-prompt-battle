@@ -357,6 +357,7 @@
     render();
     if (entry.position <= PRIZES) playChime();
   });
+  evtSource.addEventListener('race_reset', () => { results = []; render(); });
   evtSource.addEventListener('reset', () => { results = []; render(); });
 
   // Load existing

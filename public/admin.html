@@ -287,6 +287,7 @@
     </div>
     <div class="top-actions">
       <button class="action-btn reveal" id="revealBtn" onclick="toggleReveal()">👁 Reveal Names</button>
+      <button class="action-btn danger" onclick="resetRace()">🏁 Reset Race</button>
       <button class="action-btn danger" onclick="resetAll()">🗑 Reset All</button>
     </div>
   </div>
@@ -456,6 +457,16 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin: PIN }),
     });
+  }
+
+  async function resetRace() {
+    if (!confirm('Reset Deploy Race results only? Recipe Battle stays.')) return;
+    await fetch('/api/reset-race', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN }),
+    });
+    showStatus('Race results cleared.');
   }
 
   async function resetAll() {
