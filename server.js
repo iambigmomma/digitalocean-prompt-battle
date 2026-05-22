@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const { OpenAI } = require("openai");
 const path = require("path");
+const Database = require("better-sqlite3");
 
 const app = express();
 app.use(express.json({ limit: "5mb" }));
@@ -20,12 +21,57 @@ const ADMIN_PIN = process.env.ADMIN_PIN || "0000";
 const client = new OpenAI({ apiKey: DO_API_KEY, baseURL: DO_BASE_URL });
 
 // ---------------------------------------------------------------------------
-// In-memory store
+// SQLite persistence
 // ---------------------------------------------------------------------------
-let entries = []; // { id, name, preferences, dishName, imageUrl, votes, ts, starred }
-let raceResults = []; // { id, name, ts, position, response }
+const db = new Database(path.join(__dirname, "data.db"));
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS entries (
+    id INTEGER PRIMARY KEY,
+    name TEXT, preferences TEXT, dishName TEXT,
+    imageUrl TEXT, votes INTEGER DEFAULT 0,
+    ts INTEGER, starred INTEGER DEFAULT 0
+  );
+  CREATE TABLE IF NOT EXISTS race_results (
+    id INTEGER PRIMARY KEY,
+    name TEXT, ts INTEGER, position INTEGER, response TEXT
+  );
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY, value TEXT
+  );
+  INSERT OR IGNORE INTO settings (key, value) VALUES ('namesRevealed', '0');
+`);
+
+// Load state from DB into memory on startup
+let entries = db.prepare("SELECT * FROM entries ORDER BY id").all().map(dbToEntry);
+let raceResults = db.prepare("SELECT * FROM race_results ORDER BY id").all().map(dbToRace);
+let namesRevealed = db.prepare("SELECT value FROM settings WHERE key='namesRevealed'").get().value === '1';
 let sseClients = [];
-let namesRevealed = false;
+
+function dbToEntry(row) {
+  return { ...row, starred: !!row.starred };
+}
+function dbToRace(row) {
+  return { ...row };
+}
+
+function saveEntry(entry) {
+  db.prepare(`
+    INSERT OR REPLACE INTO entries (id, name, preferences, dishName, imageUrl, votes, ts, starred)
+    VALUES (@id, @name, @preferences, @dishName, @imageUrl, @votes, @ts, @starred)
+  `).run({ ...entry, starred: entry.starred ? 1 : 0 });
+}
+
+function saveRace(result) {
+  db.prepare(`
+    INSERT OR REPLACE INTO race_results (id, name, ts, position, response)
+    VALUES (@id, @name, @ts, @position, @response)
+  `).run(result);
+}
+
+function saveSetting(key, value) {
+  db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run(key, value);
+}
 
 // ---------------------------------------------------------------------------
 // SSE — live feed for the big screen
@@ -68,6 +114,7 @@ app.post("/api/prompt", async (req, res) => {
     starred: false,
   };
   entries.push(entry);
+  saveEntry(entry);
 
   // Broadcast immediately — display shows spinner
   broadcast("new_prompt", entry);
@@ -90,6 +137,7 @@ app.post("/api/prompt", async (req, res) => {
 
     entry.dishName =
       completion.choices?.[0]?.message?.content?.trim() || "(unnamed dish)";
+    saveEntry(entry);
 
     // Broadcast dish name — display updates card while image loads
     broadcast("dish_ready", entry);
@@ -118,6 +166,7 @@ app.post("/api/prompt", async (req, res) => {
     entry.dishName = `⚠️ ${err.message}`;
   }
 
+  saveEntry(entry);
   broadcast("response_ready", entry);
   res.json(entry);
 });
@@ -136,6 +185,7 @@ app.post("/api/vote/:id", (req, res) => {
   const entry = entries.find((e) => e.id === parseInt(req.params.id));
   if (!entry) return res.status(404).json({ error: "Not found" });
   entry.votes += 1;
+  saveEntry(entry);
   broadcast("vote_update", entry);
   res.json(entry);
 });
@@ -149,6 +199,7 @@ app.post("/api/star/:id", (req, res) => {
   const entry = entries.find((e) => e.id === parseInt(req.params.id));
   if (!entry) return res.status(404).json({ error: "Not found" });
   entry.starred = !entry.starred;
+  saveEntry(entry);
   broadcast("star_toggle", entry);
   res.json(entry);
 });
@@ -160,6 +211,7 @@ app.post("/api/reveal", (req, res) => {
   const { pin } = req.body;
   if (pin !== ADMIN_PIN) return res.status(403).json({ error: "Wrong PIN" });
   namesRevealed = !namesRevealed;
+  saveSetting('namesRevealed', namesRevealed ? '1' : '0');
   broadcast("reveal_toggle", { namesRevealed });
   res.json({ namesRevealed });
 });
@@ -192,6 +244,7 @@ app.post("/api/race", async (req, res) => {
       response,
     };
     raceResults.push(entry);
+    saveRace(entry);
     broadcast("race_finish", entry);
     res.json(entry);
   } catch (err) {
@@ -220,6 +273,8 @@ app.post("/api/reset", (req, res) => {
   entries = [];
   raceResults = [];
   namesRevealed = false;
+  db.exec("DELETE FROM entries; DELETE FROM race_results;");
+  saveSetting('namesRevealed', '0');
   broadcast("reset", {});
   res.json({ ok: true });
 });
